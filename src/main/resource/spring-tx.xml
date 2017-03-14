@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd">
+    
+    <!-- 事务配置可以抽象为四部分：数据源、事务管理器、事务属性、事务代理 -->
+    <!-- 数据源：支持事务的数据资源，如数据库 -->
+    <!-- 事务管理器：JDBC事务管理器、EJB容器事务管理器、分布式事务管理器等 -->
+    <!-- 事务属性：事务的传播属性等 -->
+    <!-- 事务代理：将事务属性应用到事务目标对象的方法上，且由事务管理器来管理、如自动的提交或回滚事务 -->
+    
+    <bean id="atomikosTransactionManager" class="com.atomikos.icatch.jta.UserTransactionManager">
+    	<property name="forceShutdown" value="true" />
+    </bean>
+    
+    <bean id="atomikosUserTransaction" class="com.atomikos.icatch.jta.UserTransactionImp">
+    	<property name="transactionTimeout" value="3000" />
+    </bean>
+    
+    <bean id="transactionManager" class="org.springframework.transaction.jta.JtaTransactionManager">
+    	<property name="transactionManager" ref="atomikosTransactionManager" />
+    	<property name="userTransaction" ref="atomikosUserTransaction" />
+    </bean>
+    
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+    	<tx:attributes>
+    		<tx:method name="get*" propagation="SUPPORTS" read-only="true"/>
+    		<tx:method name="query*" propagation="SUPPORTS" read-only="true"/>
+    		<tx:method name="list*" propagation="SUPPORTS" read-only="true"/>
+    		<tx:method name="select*" propagation="SUPPORTS" read-only="true"/>
+    		<tx:method name="insert*" propagation="REQUIRED"/>
+    		<tx:method name="save*" propagation="REQUIRED"/>
+    		<tx:method name="add*" propagation="REQUIRED"/>
+    		<tx:method name="update*" propagation="REQUIRED"/>
+    		<tx:method name="modify*" propagation="REQUIRED"/>
+    		<tx:method name="delete*" propagation="REQUIRED"/>
+    		<tx:method name="remove*" propagation="REQUIRED"/>
+    	</tx:attributes>
+    </tx:advice>
+    
+    <aop:config>
+    	<aop:pointcut id="txPointcut" expression="execution(* com.eop.mybatis.spring.service.*.*(..))"/>
+    	<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut"/>
+    </aop:config>
+    
+    <bean id="transactionTemplate" class="org.springframework.transaction.support.TransactionTemplate"><!-- 事务模板，手动处理事务 -->
+    	<property name="transactionManager" ref="transactionManager" />
+    </bean>
+</beans>
